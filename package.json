@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/w3tecch/aurelia-template-lint-loader",
   "dependencies": {
-    "aurelia-template-lint": "^0.10.0",
+    "aurelia-template-lint": "github:maurice-camp/template-lint#feature/typescript-v3",
     "object-assign": "^4.0.1"
   }
 }
