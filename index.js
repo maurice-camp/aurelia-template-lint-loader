@@ -5,12 +5,17 @@
 */
 const AureliaLinter = require('aurelia-template-lint').AureliaLinter;
 const Config = require('aurelia-template-lint').Config;
+const getOptions = require('loader-utils').getOptions;
 
 function lint(input, webpack, callback) {
 
   //Get options passed to the compiler
-  const config = webpack.options.aureliaTemplateLinter;
-
+  var config = getOptions(webpack);
+  if(!config)
+  {
+	  config = {};
+  }
+  
   //Type checking
   const shouldTypeCheck = config.typeChecking;
 
@@ -30,7 +35,7 @@ function lint(input, webpack, callback) {
   } else {
     linter = new AureliaLinter(config.configuration);
   }
-
+  
   //Lint current file
   linter.lint(input, webpack.resourcePath)
     .then((results) => {
@@ -53,29 +58,24 @@ function lint(input, webpack, callback) {
         //Fail on hint
         if (config.failOnHint) {
           let messages = "\r\n" + webpack.resourcePath + "\r\n" + errorText;
-          throw new Error("\r\n\r\nCompilation failed due to aurelia template error. Errors are:\r\n" + messages);
+		  callback("\r\n\r\nCompilation failed due to aurelia template error. Errors are:\r\n" + messages);
+		  return;
         }
       }
 
-      //Call callack if asnc
-      if (callback) {
-        callback(null, input);
-      }
-    });
+      //Call callback if async
+	  callback(null, input);      	  
+    })
+	.catch(e =>
+	{
+		// Linter is not very stable, log errors with warnings in webpack
+		webpack.emitWarning("Error ocurred in linter" + e.message);
+	    callback(null, input); // dont interrupt build process
+	});
 }
 
 module.exports = function (input, map) {
   this.cacheable && this.cacheable();
   const callback = this.async();
-
-  if (!callback) { // sync
-    lint(input, this);
-    return input;
-  } else { // async
-    try {
-      lint(input, this, callback);
-    } catch(e) {
-      callback(e);
-    }
-  }
+  lint(input, this, callback);
 };
